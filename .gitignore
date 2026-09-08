@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+output/
+scratch/
+*.sif
+workflow.yml
+*.replicas.db

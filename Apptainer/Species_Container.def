@@ -1,0 +1,29 @@
+# Container for the species occurrence workflow.
+#
+# Build:
+#   apptainer build Apptainer/Species_Container.sif Apptainer/Species_Container.def
+
+Bootstrap: docker
+From: python:3.11-slim
+
+%post
+    set -e
+
+    # curl and wget are mandatory: Pegasus downloads its worker package inside
+    # the container before the job script runs.
+    apt-get update
+    apt-get install -y --no-install-recommends curl wget ca-certificates
+    rm -rf /var/lib/apt/lists/*
+
+    pip install --no-cache-dir \
+        pandas==2.2.3 \
+        matplotlib==3.9.2
+
+%environment
+    export PYTHONUNBUFFERED=1
+
+%runscript
+    exec /bin/bash "$@"
+
+%labels
+    description Species occurrence comparison workflow (GBIF)
