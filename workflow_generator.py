@@ -289,8 +289,11 @@ the command it prints, or from the notebook (plan_submit()).
     log.info("hosted site catalog: %s", args.hosted_site_catalog
              or "(none — supply your own site catalog)")
     log.info("wrote %s (%d jobs)", args.output, 2 * len(args.species) + 1)
+    # --output-dir: no site catalog defines "local", so Pegasus's built-in local
+    # site would otherwise stage outputs to ./wf-output.
     print(f"\nPlan and submit:\n  pegasus-plan --dir submit "
-          f"-s {args.execution_site_name} -o local --submit {args.output}")
+          f"-s {args.execution_site_name} -o local "
+          f"--output-dir {wf.local_storage_dir} --submit {args.output}")
 
 
 if __name__ == "__main__":

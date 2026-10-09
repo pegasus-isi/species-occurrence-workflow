@@ -44,7 +44,7 @@ apptainer build Apptainer/Species_Container.sif Apptainer/Species_Container.def
 
 # 3. plan and submit (the generator prints this command; "compute" comes
 #    from a site catalog: -s FILE in step 2, or ~/.pegasusrc — see Sites)
-pegasus-plan --dir submit -s compute -o local --submit workflow.yml
+pegasus-plan --dir submit -s compute -o local --output-dir "$PWD/output" --submit workflow.yml
 
 # 4. watch
 pegasus-status <run-directory>
@@ -55,12 +55,12 @@ On a plain HTCondor pool with no site catalog, use Pegasus's built-in
 
 ```bash
 ./workflow_generator.py -e condorpool
-pegasus-plan --dir submit -s condorpool -o local --submit workflow.yml
+pegasus-plan --dir submit -s condorpool -o local --output-dir "$PWD/output" --submit workflow.yml
 ```
 
-With no site catalog, Pegasus's built-in `local` site stages the results to
-`./wf-output/`; the notebook's catalog (and a hosted catalog setup) stages
-them to `./output/`.
+Outputs land in `./output/`: the printed plan command passes `--output-dir`
+(otherwise Pegasus's built-in `local` site would use `./wf-output/`), and the
+notebook's catalog stages them there too.
 
 Or run it from the notebook, which drives the same generator class step by
 step — it writes the `create_sites_catalog()` placeholder (local + HTCondor
