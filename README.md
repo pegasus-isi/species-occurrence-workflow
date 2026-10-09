@@ -43,7 +43,7 @@ apptainer build Apptainer/Species_Container.sif Apptainer/Species_Container.def
     --year-from 2015 --year-to 2024 --max-records 900
 
 # 3. submit
-pegasus-plan --submit -s condorpool -o local workflow.yml
+pegasus-plan --submit -s compute -o local workflow.yml
 
 # 4. watch
 pegasus-status <run-directory>
@@ -56,8 +56,30 @@ pegasus-status <run-directory>
 | `--species` | three insects | Scientific names, space separated |
 | `--year-from`, `--year-to` | 2015, 2024 | Bounds which records are eligible |
 | `--max-records` | 900 | Cap per species; see non-constraint N7 |
-| `--execution-site-name` | `condorpool` | Pegasus execution site |
 | `--container-sif` | `Apptainer/Species_Container.sif` | Built image |
+| `-e`, `--execution-site` | `compute` | Site to plan against (the name hosted catalogs give their site) |
+| `-s`, `--hosted-site-catalog` | (none; `~/.pegasusrc` if set) | Hosted site catalog to plan against, e.g. `unity.yml` |
+| `--site-style` | `auto` | `auto`: keep an existing `sites.yml` entry or hosted catalog, else write `compute` as an HTCondor pool; `condor`/`slurm`: (re)write it; `none`: leave `sites.yml` alone |
+| `--queue`, `--project` | — | Batch partition and allocation account (Slurm) |
+| `--site-scratch` | `./work` | Slurm shared scratch visible to workers and the submit host |
+| `--site-profile`, `--tag-profile` | — | Extra profiles on the site or on tagged jobs; repeatable |
+| `--shared-filesystem` | `auto` | Read inputs directly from the submit host (on for Slurm, off for HTCondor) |
+| `--sites-yml` | `sites.yml` | Local site catalog |
+
+### Sites
+
+The workflow names no scheduler: each job states memory and a wall-clock
+runtime, and plans against a site named `compute`. With `-s unity.yml` (or a
+hosted catalog set in `~/.pegasusrc`) the hosted catalog defines it; with no
+options `custom_sites.py` writes it to `sites.yml` as an HTCondor pool. For a
+Slurm cluster:
+
+```bash
+./workflow_generator.py --site-style slurm --queue cpu --project my_lab
+pegasus-plan --submit -s compute -o local workflow.yml
+```
+
+`custom_sites.py` also runs standalone (`./custom_sites.py --help`).
 
 ## Outputs
 
