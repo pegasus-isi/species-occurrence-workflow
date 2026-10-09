@@ -37,16 +37,37 @@ That runs every stage as a plain script and writes `manual_output/comparison.csv
 # 1. build the container
 apptainer build Apptainer/Species_Container.sif Apptainer/Species_Container.def
 
-# 2. generate the workflow
+# 2. generate the workflow (writes the catalogs; does not submit)
 ./workflow_generator.py \
     --species "Danaus plexippus" "Vanessa cardui" "Apis mellifera" \
     --year-from 2015 --year-to 2024 --max-records 900
 
-# 3. submit
-pegasus-plan --submit -s compute -o local workflow.yml
+# 3. plan and submit (the generator prints this command; "compute" comes
+#    from a site catalog: -s FILE in step 2, or ~/.pegasusrc — see Sites)
+pegasus-plan --dir submit -s compute -o local --submit workflow.yml
 
 # 4. watch
 pegasus-status <run-directory>
+```
+
+On a plain HTCondor pool with no site catalog, use Pegasus's built-in
+`condorpool` site instead:
+
+```bash
+./workflow_generator.py -e condorpool
+pegasus-plan --dir submit -s condorpool -o local --submit workflow.yml
+```
+
+With no site catalog, Pegasus's built-in `local` site stages the results to
+`./wf-output/`; the notebook's catalog (and a hosted catalog setup) stages
+them to `./output/`.
+
+Or run it from the notebook, which drives the same generator class step by
+step — it writes the `create_sites_catalog()` placeholder (local + HTCondor
+`compute`) — and submits from an explicit cell:
+
+```bash
+jupyter notebook Species-Occurrence-Workflow.ipynb
 ```
 
 ## Options
@@ -57,29 +78,18 @@ pegasus-status <run-directory>
 | `--year-from`, `--year-to` | 2015, 2024 | Bounds which records are eligible |
 | `--max-records` | 900 | Cap per species; see non-constraint N7 |
 | `--container-sif` | `Apptainer/Species_Container.sif` | Built image |
-| `-e`, `--execution-site` | `compute` | Site to plan against (the name hosted catalogs give their site) |
-| `-s`, `--hosted-site-catalog` | (none; `~/.pegasusrc` if set) | Hosted site catalog to plan against, e.g. `unity.yml` |
-| `--site-style` | `auto` | `auto`: keep an existing `sites.yml` entry or hosted catalog, else write `compute` as an HTCondor pool; `condor`/`slurm`: (re)write it; `none`: leave `sites.yml` alone |
-| `--queue`, `--project` | — | Batch partition and allocation account (Slurm) |
-| `--site-scratch` | `./work` | Slurm shared scratch visible to workers and the submit host |
-| `--site-profile`, `--tag-profile` | — | Extra profiles on the site or on tagged jobs; repeatable |
-| `--shared-filesystem` | `auto` | Read inputs directly from the submit host (on for Slurm, off for HTCondor) |
-| `--sites-yml` | `sites.yml` | Local site catalog |
+| `-s`, `--hosted-site-catalog` | (none; `~/.pegasusrc` if set) | [Hosted site catalog](https://github.com/pegasushub/pegasus-site-catalogs/tree/main/conf) to plan against, e.g. `access-pegasus.yml`, `unity.yml` |
+| `-e`, `--execution-site-name` | `compute` | Execution site name; `condorpool` on a plain HTCondor pool with no site catalog |
+| `-o`, `--output` | `workflow.yml` | Output workflow file |
 
 ### Sites
 
-The workflow names no scheduler: each job states memory and a wall-clock
-runtime, and plans against a site named `compute`. With `-s unity.yml` (or a
-hosted catalog set in `~/.pegasusrc`) the hosted catalog defines it; with no
-options `custom_sites.py` writes it to `sites.yml` as an HTCondor pool. For a
-Slurm cluster:
-
-```bash
-./workflow_generator.py --site-style slurm --queue cpu --project my_lab
-pegasus-plan --submit -s compute -o local workflow.yml
-```
-
-`custom_sites.py` also runs standalone (`./custom_sites.py --help`).
+The generator writes no site catalog. Jobs run on a site named `compute`,
+which a [centrally hosted site catalog](https://github.com/pegasushub/pegasus-site-catalogs/tree/main/conf)
+defines: name it with `-s access-pegasus.yml` (or `unity.yml`, ...), or once
+in `~/.pegasusrc` (`pegasus.catalog.site.repo.file = ...`). On a plain
+HTCondor pool with no catalog, generate with `-e condorpool` — Pegasus builds
+a default `condorpool` site — and plan with `-s condorpool`.
 
 ## Outputs
 
