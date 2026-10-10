@@ -37,16 +37,37 @@ That runs every stage as a plain script and writes `manual_output/comparison.csv
 # 1. build the container
 apptainer build Apptainer/Species_Container.sif Apptainer/Species_Container.def
 
-# 2. generate the workflow
+# 2. generate the workflow (writes the catalogs; does not submit)
 ./workflow_generator.py \
     --species "Danaus plexippus" "Vanessa cardui" "Apis mellifera" \
     --year-from 2015 --year-to 2024 --max-records 900
 
-# 3. submit
-pegasus-plan --submit -s condorpool -o local workflow.yml
+# 3. plan and submit (the generator prints this command; "compute" comes
+#    from a site catalog: -s FILE in step 2, or ~/.pegasusrc — see Sites)
+pegasus-plan --dir submit -s compute -o local --output-dir "$PWD/output" --submit workflow.yml
 
 # 4. watch
 pegasus-status <run-directory>
+```
+
+On a plain HTCondor pool with no site catalog, use Pegasus's built-in
+`condorpool` site instead:
+
+```bash
+./workflow_generator.py -e condorpool
+pegasus-plan --dir submit -s condorpool -o local --output-dir "$PWD/output" --submit workflow.yml
+```
+
+Outputs land in `./output/`: the printed plan command passes `--output-dir`
+(otherwise Pegasus's built-in `local` site would use `./wf-output/`), and the
+notebook's catalog stages them there too.
+
+Or run it from the notebook, which drives the same generator class step by
+step — it writes the `create_sites_catalog()` placeholder (local + HTCondor
+`compute`) — and submits from an explicit cell:
+
+```bash
+jupyter notebook Species-Occurrence-Workflow.ipynb
 ```
 
 ## Options
@@ -56,8 +77,19 @@ pegasus-status <run-directory>
 | `--species` | three insects | Scientific names, space separated |
 | `--year-from`, `--year-to` | 2015, 2024 | Bounds which records are eligible |
 | `--max-records` | 900 | Cap per species; see non-constraint N7 |
-| `--execution-site-name` | `condorpool` | Pegasus execution site |
 | `--container-sif` | `Apptainer/Species_Container.sif` | Built image |
+| `-s`, `--hosted-site-catalog` | (none; `~/.pegasusrc` if set) | [Hosted site catalog](https://github.com/pegasushub/pegasus-site-catalogs/tree/main/conf) to plan against, e.g. `access-pegasus.yml`, `unity.yml` |
+| `-e`, `--execution-site-name` | `compute` | Execution site name; `condorpool` on a plain HTCondor pool with no site catalog |
+| `-o`, `--output` | `workflow.yml` | Output workflow file |
+
+### Sites
+
+The generator writes no site catalog. Jobs run on a site named `compute`,
+which a [centrally hosted site catalog](https://github.com/pegasushub/pegasus-site-catalogs/tree/main/conf)
+defines: name it with `-s access-pegasus.yml` (or `unity.yml`, ...), or once
+in `~/.pegasusrc` (`pegasus.catalog.site.repo.file = ...`). On a plain
+HTCondor pool with no catalog, generate with `-e condorpool` — Pegasus builds
+a default `condorpool` site — and plan with `-s condorpool`.
 
 ## Outputs
 
